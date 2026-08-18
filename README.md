@@ -10,7 +10,7 @@ gudumpinfo 是一个运行在 **UEFI Shell** 中的图形化系统信息查看�
 
 - **作者**：Mike Wu
 - **许可证**：非商用许可（商用需联系作者）
-- **当前版本**：0.1.297（2026-08-17 构建）
+- **当前版本**：0.1.302（2026-08-18 构建）
 - **图形库**：[LVGL 9.2.2](https://lvgl.io)（独立开源）
 - **界面语言**：简体中文（SimSun 中文字体内置）
 - **产品手册**：[功能演示 GIF](docs/manual/gudumpinfo-overview.gif) ｜ [说明书（简版）](docs/manual/gudumpinfo-说明书-简版.md) ｜ [说明书（详版）](docs/manual/gudumpinfo-说明书-详版.md)
@@ -115,7 +115,7 @@ ACPI 视图：全部 ACPI 表按分类列出，普通表逐字段解析（FADT/M
 
 本仓库是 gudumpinfo 的**二进制发布**渠道，源码暂未公开。
 
-- **当前版本**：`0.1.297`（2026-08-17 构建），版本戳见 `VERSION.txt`
+- **当前版本**：`0.1.302`（2026-08-18 构建），版本戳见 `VERSION.txt`
 - **发布内容**：`GudumpInfo.efi`（X64，EDK2 DEBUG 构建）+ 产品手册（简版/详版，Markdown 与 Word 双格式）+ 全套功能截图
 - **运行环境**：UEFI Shell（x86-64）；QEMU 或真机直接加载
 - **依赖**：独立二进制，运行不需要任何外部依赖（LVGL 图形库与中文字体均已内置）
@@ -208,7 +208,7 @@ gudumpinfo is a GUI system-information viewer that runs directly in the **UEFI S
 
 - **Author**: Mike Wu
 - **License**: Non-commercial (contact the author for commercial use)
-- **Current version**: 0.1.297 (built 2026-08-17)
+- **Current version**: 0.1.302 (built 2026-08-18)
 - **GUI library**: [LVGL 9.2.2](https://lvgl.io) (open-sourced separately)
 - **UI language**: Simplified Chinese (built-in SimSun CJK font)
 - **Product manual**: [Demo animation](docs/manual/gudumpinfo-overview.gif) ｜ [Brief manual](docs/manual/gudumpinfo-说明书-简版.md) ｜ [Detailed manual](docs/manual/gudumpinfo-说明书-详版.md)
@@ -239,7 +239,7 @@ gudumpinfo is a GUI system-information viewer that runs directly in the **UEFI S
 
 This repository is the **binary release** channel for gudumpinfo; the source code is not public yet.
 
-- **Current version**: `0.1.297` (built 2026-08-17); version stamp in `VERSION.txt`
+- **Current version**: `0.1.302` (built 2026-08-18); version stamp in `VERSION.txt`
 - **Contents**: `GudumpInfo.efi` (X64, EDK2 DEBUG build) + product manuals (brief/detailed, both Markdown and Word) + full feature screenshots
 - **Runtime**: UEFI Shell (x86-64); load directly in QEMU or on real hardware
 - **Dependencies**: none — this is a standalone binary (the LVGL graphics library and the CJK font are built in)
