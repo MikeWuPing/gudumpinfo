@@ -9,9 +9,8 @@ gudumpinfo 是一个运行在 **UEFI Shell** 中的图形化系统信息查看�
 ![gudumpinfo 主界面](screenshot/01_main_handle.png)
 
 - **作者**：Mike Wu
-- **许可证**：非商用许可（商用需联系作者）
-- **当前版本**：0.1.302（2026-08-18 构建）
-- **图形库**：[LVGL 9.2.2](https://lvgl.io)（独立开源）
+- **许可证**：MIT
+- **图形库**：[LVGL 9.2.2](https://lvgl.io)（独立开源，见下方依赖）
 - **界面语言**：简体中文（SimSun 中文字体内置）
 - **产品手册**：[功能演示 GIF](docs/manual/gudumpinfo-overview.gif) ｜ [说明书（简版）](docs/manual/gudumpinfo-说明书-简版.md) ｜ [说明书（详版）](docs/manual/gudumpinfo-说明书-详版.md)
 
@@ -22,7 +21,9 @@ gudumpinfo 是一个运行在 **UEFI Shell** 中的图形化系统信息查看�
 - [功能特性](#功能特性)
 - [界面一览](#界面一览)
 - [产品手册](#产品手册)
-- [二进制发布](#二进制发布)
+- [依赖](#依赖)
+- [目录结构](#目录结构)
+- [构建](#构建)
 - [运行](#运行)
 - [验证与取证](#验证与取证)
 - [截图展示](#截图展示)
@@ -31,7 +32,7 @@ gudumpinfo 是一个运行在 **UEFI Shell** 中的图形化系统信息查看�
 
 ## 功能特性
 
-- **18 个信息视图 + 4 个开发中占位**（主界面按钮导航，按钮栏 11 列，两行 22 个按钮排布；Event/SPD/SMBus-I2C/TPM 为即将推出的功能占位，点击提示"开发中"）：
+- **19 个信息视图 + 5 个开发中占位**（主界面按钮导航，按钮栏 12 列，两行 24 个按钮排布；SPD/SMBus-I2C/TPM/Dependency/EC 为即将推出的功能占位，点击提示"开发中"；Event/Timer 紧随协议中心之后）：
   - **Handle/Protocol**：handle → 挂载的 protocol（**590+ 条可读名表**：edk2 全包 + gEdkii + MTL 平台协议，附**常用缩写别名**如 Graphics Output (GOP)；协议行显示**安装计数**「· N 个 handle」，点击反向查询）→ DevicePath
   - **协议（M16）**：系统**全部已安装协议**中心——左协议清单（名字 + 别名 + 安装数，可搜索）→ 右安装它的 handle 列表 → 点击跳回 Handle 视图定位；支持 .gud 保存/载入
   - **设备列表 / 驱动列表 / 设备映射**：设备路径、**设备实例名**（ComponentName2 尽力而为，如 "QEMU Video PCI Adapter"）、驱动绑定关系、fs0:/blk0: 映射与卷标
@@ -45,6 +46,7 @@ gudumpinfo 是一个运行在 **UEFI Shell** 中的图形化系统信息查看�
   - **CPUID**：全量 leaf 采集（标准 0x00-0x2F + 扩展 0x80000000-0x26），**表格化逐位域解析**——每行 `位域 | Bits | 值 | 结论 | 说明`，1-bit 特性位显示明确的 **支持/不支持** 结论防误读；**说明列括注当前值**（枚举中文名/十进制，如 `（当前: 8）`，M16）；41 个 leaf 定义、2470 个位域、577 条中文解释（含 Key Locker/PCONFIG/LBR/AMX/TMUL/SGX/ArchPerfmon 及 AMD Zen4/Zen5 全系，均自 Intel SDM / AMD APM 查证）；**平台识别**（Meteor Lake/Arrow Lake/Panther Lake 等型号表自官方 EDS）；清单三组（标准/扩展/**未定义**）可折叠
   - **IO 端口**：x86 IO 空间（0x0000-0xFFFF）**Byte/Word/DWord 三种宽度读写**——窗口式浏览（256 端口/窗，翻窗不自动读）、内置**常用端口注解表**（约 60 端口：DMA/PIC/PIT/键盘/CMOS/POST/串并口/ATA/VGA/PCI 配置等，危险端口红/橙标记）；**强写保护**：进入零读取、一切访问显式触发；写操作三级管控——普通端口一次确认、**危险端口**（PIC/PIT/DMA/CMOS/PCI 配置 0xCF8/0xCFC 等）**二次确认**、**致命端口**（复位 0xCF9/0x92、CMOS 索引 0x70、键盘命令 0x64、SuperIO 索引）**直接拒绝**；宽度对齐硬规则（奇数端口仅 Byte）；副作用读端口（0x60/0x64）警告条提示；PCI 配置空间读取（0xCF8 写地址 + 0xCFC 读数据）
   - **MSR**：x86 模型特定寄存器**读写**——左侧分组 MSR 清单（**1359 条自动生成知识表**：MdePkg 架构 MSR 358 + MTL 平台特有 1001，含地址/名称/位域/只读标志，按组折叠），右侧 **64 位值 + 逐位域解析表**（位范围/字段名/值/说明），**MTRR 专门解析**（PHYSBASE/PHYSMASK 配对算内存区间：从哪到哪、大小、UC/WC/WT/WP/WB 类型；固定范围段摘要；DEF_TYPE 默认类型 + FE/E 启用位）；顶部 CPU 摘要条（型号/微码/缓存/核心线程/频率/温度）；**核选择 + 全核批量读**（MP Services 逐核执行）；**写入三级保护**（致命置灰/危险二次确认/普通一次确认，默认禁写需 ⚙ 设置开启）；**危险读拦截**（APIC/X2APIC 读取会死机的寄存器红字警示且不执行读取）；可选 **#GP 安全读钩子**（EFI_CPU_ARCH_PROTOCOL，默认关）
+  - **Event/Timer（新增）**：**全系统事件与定时器扫描**——内存扫描 EDK2 `IEVENT` 事件对象（'evnt' 签名 + 多层结构校验 + 自校准验证固件兼容性），左侧分组列表 **Event**（组事件/协议通知事件，组头显示计数可折叠）/ **Timer**（周期定时器，显示周期估算与挂载状态），右侧逐字段详情（事件类型位解读、通知级别、通知函数地址与**所属模块名**（OVMF GUID 映射表 / 真机 DEBUG BIOS 的 PDB 反查，回退 DevicePath）、事件组 GUID、触发计数、ExFlag、Timer 周期/下次触发）；协议通知事件解析**挂载协议名**（如 Loaded Image）；详情下方**「查看句柄」链接一键跳转 Handle 视图**；全局搜索**大小写不敏感模糊匹配**（搜 "exit" 命中 ExitBootServices 组事件，也可按协议名/模块名/通知级别过滤）；.gud 保存/载入（168 字节定长条目）
   - **Secure Boot**：安全启动状态与证书库**只读**查看——顶部**摘要条**（Secure Boot 启用/禁用徽标 + **派生模式**：设置/用户/部署/审计（SetupMode/DeployedMode/AuditMode 规范状态机推导）+ 签名类型数 + 认证变量数，第二行各库 `类型:数量` 一览，点击"签名类型:N"弹详情）；左列表**六个标准签名库**（PK/KEK/db/dbx/dbt/dbr）+ Default 系列（PKDefault/KEKDefault/dbDefault/dbxDefault）+ **全部认证变量**（EFI_VARIABLE_AUTHENTICATED_ACCESS_ACCESS 属性的第三方变量，如 shim 的 MokList，按名称排序、上限 64）；右表格条目列（序号/签名类型/主题 CN 或哈希摘要/大小），选中条目**X509 证书详细解析**（手写轻量 DER：subject/issuer 的 CN/O/C/OU、序列号、有效期、公钥算法与位数、**SHA256 指纹**），SHA256 哈希类签名显示完整 32 字节；库缺失显示"（不存在）"灰字、签名列表越界显示"（解析失败）"红字且不影响其他库；Tab 左库/右条目双焦点区、Ctrl+F 搜索库名；数据源全部为 UEFI 变量（SecureBoot/SetupMode/PK/KEK/db/dbx 等），不含 enroll/写入操作
   - **Save As / Load From File（M15）**：文件菜单"**保存当前视图为文件…**"（Ctrl+S）/ "**从文件载入…**"（Ctrl+L）——把任意视图采集的原始数据保存为 `.gud` 文件（弹窗选卷 + 推荐文件名 `gud_<功能>_<时间戳>.gud`），可在另一台机器/QEMU 上**数据级回放**（ACPI 载入后可重新反编译、内存编辑载入后可查看编辑，状态栏标记"已载入"）；文件头含 `GUDINFO` 大签名 + 功能小签名 + 双字节和校验，损坏/截断文件容错解析（非法记录跳过，部分可用也载入）；**16 个视图**（除 IO 端口）全部支持，载入自动路由到对应视图，Ctrl+R 恢复实时数据——真机故障现场可 Save 下来在 QEMU 上复现调试
 - **搜索**：全局搜索框，**大小写不敏感**匹配标题、协议名与**别名**（搜 "GOP" 命中 Graphics Output）、十六进制 leaf 号、位域名与中文解释
@@ -111,43 +113,63 @@ ACPI 视图：全部 ACPI 表按分类列出，普通表逐字段解析（FADT/M
 - **[说明书（简版）](docs/manual/gudumpinfo-说明书-简版.md)**（[Word 版](docs/manual/gudumpinfo-说明书-简版.docx)）：一页半快览——功能一览表、独家亮点（协议反查、590 条可读协议名、CPUID 位域当前值、文件模式等）、三步上手
 - **[说明书（详版）](docs/manual/gudumpinfo-说明书-详版.md)**（[Word 版](docs/manual/gudumpinfo-说明书-详版.docx)）：10+ 页完整手册——每个功能"怎么用 + 解决什么问题"，含全局搜索/文件模式/快捷键表/已知限制
 
-## 二进制发布
+## 依赖
 
-本仓库是 gudumpinfo 的**二进制发布**渠道，源码暂未公开。
+本包**不包含** LVGL 移植层。构建需要以下独立仓库（以 `PACKAGES_PATH` 方式并列引入）：
 
-- **当前版本**：`0.1.302`（2026-08-18 构建），版本戳见 `VERSION.txt`
-- **发布内容**：`GudumpInfo.efi`（X64，EDK2 DEBUG 构建）+ 产品手册（简版/详版，Markdown 与 Word 双格式）+ 全套功能截图
-- **运行环境**：UEFI Shell（x86-64）；QEMU 或真机直接加载
-- **依赖**：独立二进制，运行不需要任何外部依赖（LVGL 图形库与中文字体均已内置）
-- **源码**：暂未公开，后续版本将随源码仓库一并发布
+| 依赖 | 仓库 | 说明 |
+|---|---|---|
+| LvglPkg | [MikeWuPing/UEFI_LVGL](https://github.com/MikeWuPing/UEFI_LVGL) | LVGL 9.2.2 官方镜像（原样内置）+ UEFI 适配层（GOP 显示/键盘/鼠标/内存/tick） |
+
+ACPI 反编译引擎（AcpicaPkg，可选）独立开源在 [MikeWuPing/AcpicaPkg](https://github.com/MikeWuPing/AcpicaPkg)。
 
 ## 目录结构
 
 ```
 gudumpinfo/
 ├── README.md                  # 本文档（中英双语）
-├── LICENSE                    # 非商用许可
-├── VERSION.txt                # 版本戳
-├── GudumpInfo.efi             # 可执行文件（X64，UEFI Shell）
-├── docs/manual/               # 产品手册（简版/详版 md + docx、演示 GIF、配图 27 张）
+├── LICENSE                    # MIT
+├── .gitignore
+├── GudumpInfoPkg/             # 应用包（EDK2 Package）
+│   ├── GudumpInfoPkg.dec / .dsc
+│   ├── Library/FixedDebugPrintErrorLevelLib/
+│   └── Application/GudumpInfo/
+│       ├── Core/              # 纯逻辑层（各视图模型/解析/渲染，不依赖 LVGL/UEFI 图形）
+│       ├── Platform/          # UEFI 采集层（协议/内存/ACPI 表/CPUID 指令）
+│       └── Ui/                # LVGL 呈现层（SplitView/TableView/HexEdit/CodeView/焦点管理）
+├── tools/                     # 构建与验证脚本（New-BuildVersion / Build-HostTests / Run-Qemu*）
+├── tests/host/                # 主机侧单元测试（VS2019 cl.exe 直编，6000+ checks）
+├── qemu_disk/                 # QEMU 运行盘（gudumpinfo.efi + startup.nsh）
+├── docs/manual/               # 产品手册（简版/详版 md + docx、演示 GIF、配图 24 张）
 └── screenshot/                # 功能截图（01_main_handle.png ~ 24_proto_reverse.png）
 ```
 
+## 构建
+
+环境：EDK2 + VS2019（X64）。设好 WORKSPACE 与 `PACKAGES_PATH`（edk2 + UEFI_LVGL + 本目录）后：
+
+```cmd
+powershell -ExecutionPolicy Bypass -File tools\New-BuildVersion.ps1
+build -p GudumpInfoPkg\GudumpInfoPkg.dsc -a X64 -t VS2019 -b DEBUG
+```
+
+产物：`Build/GudumpInfoPkg/DEBUG_VS2019/X64/GudumpInfo.efi`
+
 ## 运行
 
-把 `GudumpInfo.efi` 拷贝到 FAT 格式的启动卷（U 盘或 QEMU 虚拟盘），在 UEFI Shell 中执行：
+把 `gudumpinfo.efi`、`startup.nsh` 放进 QEMU 虚拟 FAT 盘启动：
 
 ```
-Shell> GudumpInfo.efi
+Shell> gudumpinfo.efi
 ```
 
-QEMU 下鼠标验证需要带 USB 鼠标驱动的 OVMF 固件（`-device usb-mouse`；上游 OVMF 默认不含该驱动）。真机（如 Intel 平台开发板）在 UEFI Shell 中直接运行即可。
+鼠标验证需要带 USB 鼠标驱动的 OVMF 固件（`-device usb-mouse`；上游 OVMF 默认不含，参见 UEFI_LVGL 仓库的补丁说明）。一键运行：`tools/Run-GudumpInfoQemu.ps1`（SDL 交互窗口）。
 
 ## 验证与取证
 
-- **主机单元测试**（Core 纯逻辑层，无需 EDK2）：VS2019 `cl.exe` 直接编译，**6000+ checks / 0 failures**（含 CPUID 表完整性 2500+ 项、golden 真实 CPUID 数据 294 项）
-- **CPUID 表由生成器维护**：位域定义从 edk2 `MdePkg` 的 `Cpuid.h` 提取生成，新 leaf 人工从规范查证后补入（edk2 升级可重生成）
-- **QEMU 闭环取证**：串口断言（`APP_VERSION=` 与 expected_version.txt 一致）+ monitor screendump 截图 + sendkey/QMP 键鼠注入，全程无人值守
+- **主机单元测试**（Core 纯逻辑层，无需 EDK2）：VS2019 `cl.exe` 直接编译 `tests/host/` 下用例，**6000+ checks / 0 failures**（含 CPUID 表完整性 2500+ 项、golden 真实 CPUID 数据 294 项）
+- **CPUID 表由生成器维护**：`tools/GenCpuIdTable.py` 从 edk2 `MdePkg/Include/Register/Intel/Cpuid.h` 提取位域 → 生成 `CpuIdDefs.c`；新 leaf 人工从规范查证后补入 `tools/cpuid_data/new_leaves.h` 重跑生成器（edk2 升级可重生成）
+- **QEMU 闭环取证**：串口断言（`APP_VERSION=` 与 expected_version.txt 一致）+ monitor screendump 截图 + sendkey/QMP 键鼠注入，全程无人值守（`tools/Run-QemuM10.ps1` 等）
 
 ## 截图展示
 
@@ -192,7 +214,7 @@ QEMU 下鼠标验证需要带 USB 鼠标驱动的 OVMF 固件（`-device usb-mou
 
 ## 许可证
 
-本软件**仅限非商业使用**：允许个人学习、研究、评估、教学等非商业目的的复制、分发与内部开发；**禁止任何形式的商业使用**（销售、捆绑销售、作为商业产品或服务的一部分、商业培训、收费服务等）。如需商用授权，请联系作者 Mike Wu。完整条款见 [LICENSE](LICENSE)。
+MIT License。参见 [LICENSE](LICENSE)。
 
 ---
 
@@ -207,15 +229,14 @@ gudumpinfo is a GUI system-information viewer that runs directly in the **UEFI S
 ![gudumpinfo main window](screenshot/01_main_handle.png)
 
 - **Author**: Mike Wu
-- **License**: Non-commercial (contact the author for commercial use)
-- **Current version**: 0.1.302 (built 2026-08-18)
-- **GUI library**: [LVGL 9.2.2](https://lvgl.io) (open-sourced separately)
+- **License**: MIT
+- **GUI library**: [LVGL 9.2.2](https://lvgl.io) (open-sourced separately, see Dependencies)
 - **UI language**: Simplified Chinese (built-in SimSun CJK font)
 - **Product manual**: [Demo animation](docs/manual/gudumpinfo-overview.gif) ｜ [Brief manual](docs/manual/gudumpinfo-说明书-简版.md) ｜ [Detailed manual](docs/manual/gudumpinfo-说明书-详版.md)
 
 ## Features
 
-- **18 information views + 4 upcoming placeholders** (button-navigated, 11-column button bar, 22 buttons in two full rows; Event/SPD/SMBus-I2C/TPM are upcoming-feature placeholders showing a "under development" notice when clicked):
+- **19 information views + 5 upcoming placeholders** (button-navigated, 11-column button bar, 22 buttons in two full rows; Event/SPD/SMBus-I2C/TPM are upcoming-feature placeholders showing a "under development" notice when clicked):
   - **Handles/Protocols**: handle → protocols (**590+ entry readable-name table**: all edk2 packages + gEdkii + MTL platform protocols, with **common abbreviations** such as Graphics Output (GOP); each protocol row shows its **install count** "· N handles", click for reverse lookup) → DevicePath
   - **Protocols (M16)**: an **all-installed-protocols** center — left list (name + alias + install count, searchable) → right list of owning handles → click to jump back to the Handle view; .gud save/load supported
   - **Devices / Drivers / Mappings**: device paths, **device instance names** (best-effort via ComponentName2, e.g. "QEMU Video PCI Adapter"), driver bindings, fs0:/blk0: volumes
@@ -229,49 +250,83 @@ gudumpinfo is a GUI system-information viewer that runs directly in the **UEFI S
   - **CPUID**: full leaf collection (standard 0x00-0x2F + extended 0x80000000-0x26), **table-formatted bit-field decoding** — `Field | Bits | Value | Result | Description` per row, 1-bit feature bits show an explicit **Supported/Not-supported** conclusion; the description column appends the **current value** (enum Chinese name or decimal, e.g. `（当前: 8）`, M16); 41 leaf definitions, 2470 bit fields, 577 Chinese annotations (Key Locker/PCONFIG/LBR/AMX/TMUL/SGX/ArchPerfmon plus the full AMD Zen4/Zen5 set, all verified against Intel SDM / AMD APM); **platform recognition** (Meteor Lake/Arrow Lake/Panther Lake model tables from official EDS); three collapsible list groups (standard/extended/**undefined**)
   - **IO Ports**: x86 IO space (0x0000-0xFFFF) **read/write in Byte/Word/DWord widths** — windowed browsing (256 ports/window, no auto-read on paging), built-in **common-port annotation table** (~60 ports: DMA/PIC/PIT/keyboard/CMOS/POST/serial/parallel/ATA/VGA/PCI config, danger ports marked red/orange); **strong write protection**: zero access on entry, every access explicitly triggered; three-tier write control — single confirm for normal ports, **double confirm for danger ports** (PIC/PIT/DMA/CMOS/PCI config 0xCF8/0xCFC…), **hard reject for fatal ports** (reset 0xCF9/0x92, CMOS index 0x70, keyboard command 0x64, SuperIO index); width-alignment rule (odd ports Byte-only); side-effect read ports (0x60/0x64) warned; PCI config-space reads via 0xCF8 (address) + 0xCFC (data)
   - **MSR**: x86 model-specific register **read/write** — left grouped MSR list (**1359-entry auto-generated knowledge table**: 358 MdePkg architectural + 1001 MTL platform MSRs, addresses/names/bitfields/read-only flags, collapsible groups), right **64-bit value + per-bitfield decode table** (bits/field/value/description), **dedicated MTRR parsing** (PHYSBASE/PHYSMASK pairs resolve memory ranges: from-to, size, UC/WC/WT/WP/WB type; fixed-range segment summaries; DEF_TYPE default type + FE/E enable bits); top CPU summary bar (model/microcode/cache/cores-threads/frequency/temperature); **per-core selection + all-core batch read** (MP Services); **three-tier write protection** (fatal greyed / danger double-confirm / normal single-confirm, writes disabled by default until enabled in ⚙ settings); **danger-read blocking** (APIC/X2APIC registers that hang the machine shown in red and never read); optional **#GP-safe read hook** (EFI_CPU_ARCH_PROTOCOL, off by default)
-  - **Secure Boot**: read-only view of Secure Boot state and certificate stores — top **summary bar** (enabled/disabled badge + **derived mode**: Setup/User/Deployed/Audit from the SetupMode/DeployedMode/AuditMode state machine + signature-type count + authenticated-variable count, second row per-store `type:count` overview, click "签名类型:N" for the full list); left list of the **six standard signature stores** (PK/KEK/db/dbx/dbt/dbr) + the Default series (PKDefault/KEKDefault/dbDefault/dbxDefault) + **all authenticated variables** (EFI_VARIABLE_AUTHENTICATED_ACCESS_ACCESS third-party variables such as shim's MokList, name-sorted, capped at 64); right table of signature entries (index/type/subject CN or hash digest/size) with **detailed X509 certificate parsing** for the selected entry (hand-rolled light DER: subject/issuer CN/O/C/OU, serial number, validity period, public-key algorithm & bit length, **SHA256 fingerprint**); SHA256-hash signatures shown in full 32 bytes; missing stores greyed as "not present", signature-list overruns marked red "parse failed" without affecting other stores; Tab cycles the left store list / right entry list focus zones, Ctrl+F searches store names; all data comes from UEFI variables (SecureBoot/SetupMode/PK/KEK/db/dbx…), no enroll/write operations
+  - **Event/Timer (new)**: full-system event & timer scan — memory scan of
+  EDK2 IEVENT objects ('evnt' signature + multi-layer validation +
+  self-calibration firmware check); left list grouped into **Event**
+  (group/protocol-notification events, collapsible headers with counts)
+  and **Timer** (periodic timers with estimated period & armed state);
+  right detail per-field (type bits, notify TPL, notify function address
+  with **module name** (OVMF GUID map / PDB reverse lookup on real
+  DEBUG BIOS, DevicePath fallback), event group GUID, signal count,
+  ExFlag, timer period/next-trigger); protocol-notification events show
+  the **mounted protocol name** (e.g. Loaded Image); a **View Handle**
+  link below the detail jumps to the Handle view; global search
+  case-insensitive fuzzy match ("exit" hits ExitBootServices group
+  events; also by protocol/module name, notify level); .gud save/load
+  (168-byte fixed records)
+- **Secure Boot**: read-only view of Secure Boot state and certificate stores — top **summary bar** (enabled/disabled badge + **derived mode**: Setup/User/Deployed/Audit from the SetupMode/DeployedMode/AuditMode state machine + signature-type count + authenticated-variable count, second row per-store `type:count` overview, click "签名类型:N" for the full list); left list of the **six standard signature stores** (PK/KEK/db/dbx/dbt/dbr) + the Default series (PKDefault/KEKDefault/dbDefault/dbxDefault) + **all authenticated variables** (EFI_VARIABLE_AUTHENTICATED_ACCESS_ACCESS third-party variables such as shim's MokList, name-sorted, capped at 64); right table of signature entries (index/type/subject CN or hash digest/size) with **detailed X509 certificate parsing** for the selected entry (hand-rolled light DER: subject/issuer CN/O/C/OU, serial number, validity period, public-key algorithm & bit length, **SHA256 fingerprint**); SHA256-hash signatures shown in full 32 bytes; missing stores greyed as "not present", signature-list overruns marked red "parse failed" without affecting other stores; Tab cycles the left store list / right entry list focus zones, Ctrl+F searches store names; all data comes from UEFI variables (SecureBoot/SetupMode/PK/KEK/db/dbx…), no enroll/write operations
   - **Save As / Load From File (M15)**: File menu "**Save current view as file…**" (Ctrl+S) / "**Load from file…**" (Ctrl+L) — dumps any view's raw collected data into a `.gud` file (volume picker + suggested name `gud_<feature>_<timestamp>.gud`), replayable **at the data level** on another machine or in QEMU (ACPI tables re-disassemble after load, the memory editor works on loaded data, status bar shows "已载入"); the file header carries the `GUDINFO` signature + per-feature signature + dual byte-sum checksums, and parsing tolerates corrupt/truncated records (bad records skipped, partially-usable files still load); **all 16 views except IO ports** are supported, loading auto-routes to the owning view, Ctrl+R returns to live data — save a real-machine failure site and reproduce it in QEMU
 - **Search**: global search box, **case-insensitive** matching of titles, protocol names and **aliases** (typing "GOP" finds Graphics Output), hex leaf numbers, field names and Chinese descriptions
 - **Keyboard focus**: Windows-style Tab zone cycling with focus highlight/lowlight; three-level Esc handling, Ctrl+R refresh
 - **Custom table widget**: virtual scrolling (CodeView-style), no memory pressure on thousands of rows
 
-## Binary Release
+## Dependencies
 
-This repository is the **binary release** channel for gudumpinfo; the source code is not public yet.
+This package does **not** bundle the LVGL port layer. Build with the following independent repos side-by-side via `PACKAGES_PATH`:
 
-- **Current version**: `0.1.302` (built 2026-08-18); version stamp in `VERSION.txt`
-- **Contents**: `GudumpInfo.efi` (X64, EDK2 DEBUG build) + product manuals (brief/detailed, both Markdown and Word) + full feature screenshots
-- **Runtime**: UEFI Shell (x86-64); load directly in QEMU or on real hardware
-- **Dependencies**: none — this is a standalone binary (the LVGL graphics library and the CJK font are built in)
-- **Source**: not open-sourced yet; will be published in a later release
+| Dependency | Repo | Description |
+|---|---|---|
+| LvglPkg | [MikeWuPing/UEFI_LVGL](https://github.com/MikeWuPing/UEFI_LVGL) | LVGL 9.2.2 upstream mirror (untouched) + UEFI adaptation layer (GOP display / keyboard / mouse / memory / tick) |
+
+The ACPI disassembler engine (AcpicaPkg, optional) is open-sourced separately at [MikeWuPing/AcpicaPkg](https://github.com/MikeWuPing/AcpicaPkg).
 
 ## Directory Layout
 
 ```
 gudumpinfo/
 ├── README.md                  # This document (bilingual)
-├── LICENSE                    # Non-commercial license
-├── VERSION.txt                # Version stamp
-├── GudumpInfo.efi             # Executable (X64, UEFI Shell)
-├── docs/manual/               # Product manuals (brief/detailed md + docx, demo GIF, 27 images)
+├── LICENSE                    # MIT
+├── .gitignore
+├── GudumpInfoPkg/             # The application package (EDK2 Package)
+│   ├── GudumpInfoPkg.dec / .dsc
+│   ├── Library/FixedDebugPrintErrorLevelLib/
+│   └── Application/GudumpInfo/
+│       ├── Core/              # Pure logic (view models / parsing / rendering, no LVGL/UEFI graphics deps)
+│       ├── Platform/          # UEFI collection layer (protocols / memory / ACPI tables / CPUID)
+│       └── Ui/                # LVGL presentation (SplitView / TableView / HexEdit / CodeView / focus mgmt)
+├── tools/                     # Build & verification scripts (New-BuildVersion / Build-HostTests / Run-Qemu*)
+├── tests/host/                # Host-side unit tests (VS2019 cl.exe, 6000+ checks)
+├── qemu_disk/                 # QEMU boot disk (gudumpinfo.efi + startup.nsh)
+├── docs/manual/               # Product manuals (brief/detailed md + docx, demo GIF, 24 screenshots)
 └── screenshot/                # Feature screenshots (01_main_handle.png ~ 24_proto_reverse.png)
 ```
 
+## Build
+
+Environment: EDK2 + VS2019 (X64). With WORKSPACE and `PACKAGES_PATH` (edk2 + UEFI_LVGL + this repo) set:
+
+```cmd
+powershell -ExecutionPolicy Bypass -File tools\New-BuildVersion.ps1
+build -p GudumpInfoPkg\GudumpInfoPkg.dsc -a X64 -t VS2019 -b DEBUG
+```
+
+Output: `Build/GudumpInfoPkg/DEBUG_VS2019/X64/GudumpInfo.efi`
+
 ## Run
 
-Copy `GudumpInfo.efi` to a FAT-formatted boot volume (USB stick or QEMU virtual drive) and run it from the UEFI Shell:
+Place `gudumpinfo.efi` and `startup.nsh` on a QEMU virtual FAT drive:
 
 ```
-Shell> GudumpInfo.efi
+Shell> gudumpinfo.efi
 ```
 
-Under QEMU, mouse support requires an OVMF build with the USB mouse driver (`-device usb-mouse`; upstream OVMF lacks it by default). On real hardware (e.g. Intel platform dev boards), just run it from the UEFI Shell.
+Mouse support requires an OVMF build with the USB mouse driver (`-device usb-mouse`; upstream OVMF lacks it by default — see the UEFI_LVGL repo for patches). One-click run: `tools/Run-GudumpInfoQemu.ps1` (SDL interactive window).
 
 ## Verification
 
-- **Host unit tests** (Core pure-logic layer, no EDK2 needed): compiled directly with VS2019 `cl.exe`, **6000+ checks / 0 failures** (including 2500+ CPUID table-integrity checks and 294 golden checks against real host CPUID data)
-- **CPUID tables are generator-maintained**: bit-field definitions are extracted from `Cpuid.h` in edk2 `MdePkg`; new leaves are verified against specs and added (regenerable on edk2 upgrades)
-- **Closed-loop QEMU forensics**: serial assertions (`APP_VERSION=` matches expected_version.txt) + monitor screendump + sendkey/QMP keyboard & mouse injection, fully unattended
+- **Host unit tests** (Core pure-logic layer, no EDK2 needed): compiled directly with VS2019 `cl.exe` from `tests/host/`, **6000+ checks / 0 failures** (including 2500+ CPUID table-integrity checks and 294 golden checks against real host CPUID data)
+- **CPUID tables are generator-maintained**: `tools/GenCpuIdTable.py` extracts bit fields from edk2 `MdePkg/Include/Register/Intel/Cpuid.h` → generates `CpuIdDefs.c`; new leaves verified against specs are added to `tools/cpuid_data/new_leaves.h` and regenerated (re-runnable on edk2 upgrades)
+- **Closed-loop QEMU forensics**: serial assertions (`APP_VERSION=` matches expected_version.txt) + monitor screendump + sendkey/QMP keyboard & mouse injection, fully unattended (`tools/Run-QemuM10.ps1` etc.)
 
 ## Screenshots
 
@@ -316,4 +371,4 @@ Under QEMU, mouse support requires an OVMF build with the USB mouse driver (`-de
 
 ## License
 
-This software is **non-commercial only**: free use, copying, distribution and internal development for personal, educational, research, evaluation and teaching purposes; **any commercial use is prohibited** (selling, bundling, incorporating into commercial products or services, commercial training, paid services, etc.). For a commercial license, contact the author Mike Wu. Full terms in [LICENSE](LICENSE).
+MIT License. See [LICENSE](LICENSE).
