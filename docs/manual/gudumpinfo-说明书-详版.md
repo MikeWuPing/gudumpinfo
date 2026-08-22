@@ -1,6 +1,6 @@
 # gudumpinfo 产品说明书（详版）
 
-**UEFI 系统信息查看器 · 版本 0.1.297 · 2026-08-17**
+**UEFI 系统信息查看器 · 版本 0.1.338 · 2026-08-21**
 
 ---
 
@@ -236,6 +236,8 @@ CPUID 视图枚举处理器支持的全部 CPUID leaf（标准区 0x00–0x2F �
 
 搜索支持位域名匹配（搜 "SSE" 命中 0x01 的 SSE3 等），便于快速定位某个特性位。对驱动与固件开发者来说，这个视图替代了反复写 `cpuid` 内嵌汇编调试代码的流程：特性支持、缓存拓扑、虚拟化位一目了然。
 
+> 说明：CPUID 依赖 x86 的 `cpuid` 指令，属 x86 专属视图——AARCH64 构建下该按钮置灰不可点击（灰调机制见 8.2 节）。
+
 ### 5.16 IO 端口
 
 ![IO 端口视图](images/16_io.png)
@@ -246,6 +248,8 @@ IO 端口视图以窗口方式浏览 x86 IO 空间：控制条输入起始端口
 
 IO 端口视图解决的是 Shell 无法完成的工作：读 0x80 诊断端口、检查 8259/8254 等传统控制器状态、验证某端口写保护是否生效。请始终注意：对错误端口的一次写入可能立刻蓝屏或复位。
 
+> 说明：IO 端口空间是 x86 专属概念，AARCH64 构建下该按钮置灰不可点击（灰调机制见 8.2 节）。
+
 ### 5.17 MSR
 
 ![MSR 视图](images/17_msr.png)
@@ -255,6 +259,8 @@ MSR 视图是处理器模型专属寄存器（Model-Specific Register）的完�
 读取有风险门禁：钩子未开启且本视图内未确认过时，第一次读取会弹"MSR 读取风险确认"模态框——读取不支持的 MSR 可能触发 #GP 异常导致死机，建议先在 ⚙ 设置中开启"安全任意地址读"（注册 #GP 钩子，固件需支持 CpuArch 协议，不支持时会如实提示并回滚开关）。危险读地址（如 IA32_APIC_BASE 0x1B 与 X2APIC 空间 0x800–0x8FF）被直接拦截，红字警示不予读取。"全核读"弹模态面板逐核读取当前 MSR，无响应的核显示"该核无响应"、GP# 显示"MSR 不可用 (GP#)"。
 
 写入默认禁用，需在 ⚙ 设置对话框中打开"允许 MSR 写入"开关；之后按三级确认链执行：致命 MSR 与只读 MSR 的写入按钮置灰，危险 MSR 二次确认，未知 MSR 一次确认并附带风险提示。写入后自动回读。这个视图把以往只能靠 `rdmsr/wrmsr` 汇编片段或专用工具完成的工作，变成了一个带知识库与防护的可视化工具。
+
+> 说明：MSR 是 x86 处理器专属寄存器，AARCH64 构建下该按钮置灰不可点击（灰调机制见 8.2 节）。
 
 ### 5.18 安全启动
 
@@ -286,6 +292,43 @@ Event/Timer 视图扫描并展示 UEFI 事件系统（EDK2 `IEVENT` 对象）的
 
 后续路线图包括：SPD/SMBus-I2C/TPM/Dependency/EC 五个占位视图的真实实现；Event 视图接入全局搜索的进一步打磨；继续扩充协议别名与 IO 端口/MSR 知识库（这两张表决定搜索与注解的覆盖度）；以及针对更大条目量场景的虚拟滚动与分页优化。欢迎在真实平台上使用并反馈缺漏——知识库类内容（协议别名、端口注解、MSR 定义）的价值正来自不断积累。
 
+## 八、构建与 ARM64 支持（开发篇）
+
+本节面向需要在本地构建、或希望把 gudumpinfo 带到 ARM64 平台上的开发者。日常使用只需安装章节的单个 .efi 即可，本节内容不影响终端用户。
+
+### 8.1 双架构构建
+
+从本版本起，gudumpinfo 同时支持 **x86-64（X64）** 与 **AARCH64（ARM64）** 两个架构的构建。仓库提供一键脚本 `tools\Build-DualArch.ps1`，默认做一次版本递增后依次构建两个架构并各自 staging 虚拟 FAT 启动盘：
+
+```cmd
+powershell -ExecutionPolicy Bypass -File tools\Build-DualArch.ps1
+:: 一次性版本递增，构建 X64 + AARCH64，分别 staging qemu_disk\ 与 qemu_disk_a64\
+```
+
+只构建其中一个架构（快速切换验证流）用 `-Arch` 参数指定；`-NoBump` 复用当前版本号不递增（只重建与重新 staging）：
+
+```cmd
+powershell -ExecutionPolicy Bypass -File tools\Build-DualArch.ps1 -Arch X64
+powershell -ExecutionPolicy Bypass -File tools\Build-DualArch.ps1 -Arch AARCH64 -NoBump
+```
+
+两个架构都使用 VS2019（MSVC）工具链——AARCH64 的 MSVC 交叉编译器作为构建前提一次性安装（Task 1），无需额外 LLVM 环境。产物路径按架构分目录：
+
+| 架构 | 产物 | 说明 |
+|---|---|---|
+| X64 | `D:\AIProject\edk2\Build\GudumpInfoPkg\DEBUG_VS2019\X64\GudumpInfo.efi` | 主验证流，QEMU + OVMF |
+| AARCH64 | `D:\AIProject\edk2\Build\GudumpInfoPkg\DEBUG_VS2019\AARCH64\GudumpInfo.efi` | 辅助验证流，QEMU + ArmVirtQemu |
+
+手动单架构构建（不经过 Build-DualArch.ps1）等价于旧流程：先 `New-BuildVersion.ps1` 递增版本并重新生成 `Version.h` 与 `expected_version.txt`，再 `build -p GudumpInfoPkg\GudumpInfoPkg.dsc -a X64 -t VS2019 -b DEBUG`（构建环境由 `tools\Set-GudumpInfoEnv.cmd` 准备）。运行验证对应两个脚本：X64 用 `tools\Run-GudumpInfoQemu.ps1`（断言 24 个按钮全 enabled——含 x86 专属的 CPUID/IO/MSR、Event 自校准、SMBIOS 全流程、干净退出），AARCH64 用 `tools\Run-GudumpInfoQemuA64.ps1`（断言三个 x86 专属按钮置灰、Event 自校准、代表视图）。
+
+### 8.2 ARM64 支持说明
+
+**灰调视图。** CPUID（5.15）、IO 端口（5.16）、MSR（5.17）三个视图读取 x86 专属寄存器与端口空间（`cpuid`/`in`/`out`/`rdmsr`/`wrmsr` 指令），在 AARCH64 上没有对应语义。构建时用 `GUDUMP_X86_VIEWS` 宏做架构门控（X64=1 注册真实视图，AARCH64=0 不注册），未注册的槽位按钮走 ButtonBar 的置灰机制：LVGL `LV_STATE_DISABLED` 灰态且点击被 hit-test 丢弃（注意这与"开发中"占位按钮不同——占位按钮（SPD 等，5.20 节）可点击、点击后显示"正在开发中"提示，仅灰调视图按钮是禁用的）。因此同一份代码在两个架构上呈现出正确差异——X64 上这三个按钮正常可用，AARCH64 上置灰不可点，其余 16 个可用视图按钮（槽位 0-14、18）与 5 个占位按钮两架构完全一致。
+
+**Event 自校准在 ARM64 的结果。** Event/Timer 视图的事件扫描以 EDK2 事件对象内存布局为基础，不同固件由自校准事件验证兼容性（见 5.19 节）。ARM64 首轮验证（Task 8，2026-08-21，ArmVirtQemu 固件）记录：自校准通过——`EventScan: self-calib OK (gSelfEv 4620D418, fn 45B166F0, 98 entries)`，扫描完成 `ev scan done: 100 rows, calib 1`，即 AArch64 固件上事件对象结构校验同样成立，扫描结果置信度满格。Task 8 同时修复了 ARM64 首跑暴露的两个问题：Event 扫描的跨页越界崩溃（分页读取前先做内存可读性守卫）与绝对指针鼠标漂移导致的点击失效（改为按 app 日志回读指针位置重新锚定），两个修复都是跨架构通用代码，X64 回归（本任务）一并验证。
+
+**已知差异。** 与 x64 相比，ARM64 运行环境有几点不同。其一是串口：x64/OVMF 用传统 16550（0x3F8 COM1），ARM virt 机器的固件串口是 **PL011（0x09000000）**，构建脚本按架构分区把 `PcdSerialRegisterBase` 覆盖为对应地址，调试日志与版本输出走 PL011。其二是固件构建工具链：AArch64 固件（ArmVirtQemu）必须用 **CLANGPDB** 工具链构建（MSVC 无法生成 AARCH64 固件，.S 汇编由 clang 编译），运行脚本引用 `DEBUG_CLANGPDB` 产物 `QEMU_EFI.fd`；固件侧还补了 fdf 层的 USB 鼠标驱动（`UsbMouseAbsolutePointerDxe`，与 x64 时代 OVMF 同款补丁），配合 `qemu-xhci + usb-mouse + usb-kbd` 设备提供鼠标输入。其三是启动盘：ARM64 用独立的 `qemu_disk_a64\`（`EFI\BOOT\BOOTAA64.EFI` 引导 Shell），版本一致性由 `expected_version.txt` 双端校验保证。除此之外，界面、视图、键盘鼠标交互与 .gud 存档格式两架构完全一致。
+
 ## 附录：快捷键汇总
 
 | 按键 | 功能 |
@@ -300,10 +343,10 @@ Event/Timer 视图扫描并展示 UEFI 事件系统（EDK2 `IEVENT` 对象）的
 | ESC | 三级：清空搜索 → 当前视图"返回"（反查/子视图）→ 关闭对话框；不退出程序 |
 | Enter | 列表聚焦时执行视图跳转（PCI/USB 树跳 Handle 页）；对话框中确认 |
 | ←/→ | 按钮区切换类别；列表聚焦时水平滚动；Hex 编辑器移动单元格 |
-| ↑/↓ | 按钮区跨行移动（11 列）；列表移动选择（跳过组头）；详情滚动 |
+| ↑/↓ | 按钮区跨行移动（12 列两排）；列表移动选择（跳过组头）；详情滚动 |
 | PageUp/PageDown | 列表/详情整屏滚动；IO 端口窗口翻页（±256 行）；Hex 编辑器翻页 |
 | 对话框内 Tab | 保存/载入对话框控件循环 |
 | 对话框内 Enter/ESC | 确认 / 取消（确认框、保存、载入、关于通用） |
 | Hex 编辑器 Tab | 第一次在 hex/ASCII 列间切换，连续第二次逃出编辑器回到全局焦点循环 |
 
-> 说明：本手册所描述的行为与截图均基于版本 0.1.297（构建日期 2026-08-17）。软件界面为简体中文，部分技术名词（GUID、protocol、GOP、CPUID、MSR、SMBIOS、ACPI、HOB、GCD）按业界惯例保留英文。
+> 说明：本手册所描述的行为与截图均基于版本 0.1.338（构建日期 2026-08-21，X64 与 AARCH64 双架构构建）。软件界面为简体中文，部分技术名词（GUID、protocol、GOP、CPUID、MSR、SMBIOS、ACPI、HOB、GCD）按业界惯例保留英文。

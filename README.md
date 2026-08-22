@@ -2,7 +2,7 @@
 
 > [English version below](#english) ｜ [English README](#english)
 
-gudumpinfo 是一个运行在 **UEFI Shell** 中的图形化系统信息查看器，定位类似 Windows 下的系统信息工具，但运行在固件环境里——不依赖任何操作系统。它基于 LVGL 图形库构建，**全简体中文界面**（内置中文字库），鼠标与键盘双输入，覆盖 UEFI 开发者日常排障所需的全部底层信息：Handle/Protocol、设备、驱动、映射、内存映射、GCD、PCI 树、USB 树、SMBIOS、变量、HOB、ACPI 表，以及深度解析的 **CPUID**。
+gudumpinfo 是一个运行在 **UEFI Shell** 中的图形化系统信息查看器，定位类似 Windows 下的系统信息工具，但运行在固件环境里——不依赖任何操作系统。它基于 LVGL 图形库构建，**全简体中文界面**（内置中文字库），鼠标与键盘双输入，覆盖 UEFI 开发者日常排障所需的全部底层信息：Handle/Protocol、设备、驱动、映射、内存映射、GCD、PCI 树、USB 树、SMBIOS、变量、HOB、ACPI 表，以及深度解析的 **CPUID**。**支持 X64 与 AArch64 双架构**（一套源码；AArch64 上 x86 专属视图 CPUID/IO 端口/MSR 自动灰调，其余一致可用，见「构建」节）。
 
 > 在固件世界，想看一眼 CPU 到底是什么、ACPI 表里写了什么，不该只能敲命令。
 
@@ -146,14 +146,22 @@ gudumpinfo/
 
 ## 构建
 
-环境：EDK2 + VS2019（X64）。设好 WORKSPACE 与 `PACKAGES_PATH`（edk2 + UEFI_LVGL + 本目录）后：
+环境：EDK2 + VS2019。设好 WORKSPACE 与 `PACKAGES_PATH`（edk2 + UEFI_LVGL + AcpicaPkg + 本目录）后：
 
 ```cmd
+# 双架构一键构建（版本只递增一次，产物分别 stage 到 qemu_disk / qemu_disk_a64）
+powershell -ExecutionPolicy Bypass -File tools\Build-DualArch.ps1            # 默认 All：X64 + AARCH64
+powershell -ExecutionPolicy Bypass -File tools\Build-DualArch.ps1 -Arch X64  # 单架构快速切换
+
+# 或手工分步
 powershell -ExecutionPolicy Bypass -File tools\New-BuildVersion.ps1
 build -p GudumpInfoPkg\GudumpInfoPkg.dsc -a X64 -t VS2019 -b DEBUG
+build -p GudumpInfoPkg\GudumpInfoPkg.dsc -a AARCH64 -t VS2019 -b DEBUG
 ```
 
-产物：`Build/GudumpInfoPkg/DEBUG_VS2019/X64/GudumpInfo.efi`
+产物：`Build/GudumpInfoPkg/DEBUG_VS2019/X64/GudumpInfo.efi` 与 `.../DEBUG_VS2019/AARCH64/GudumpInfo.efi`（同一工具链 tag，产物按 `-a` 自动分目录）。
+
+**架构支持：** X64 与 AARCH64 一套源码（`SUPPORTED_ARCHITECTURES = X64|AARCH64`）。AARCH64 的 MSVC 路径需 VS2019 的 ARM64 编译工具（`Hostx64/arm64/cl.exe` + `armasm64.exe`）；x86 专属视图 **CPUID / IO 端口 / MSR 在 AARCH64 上自动灰调**（`GUDUMP_X86_VIEWS` 编译期门控），其余视图（含 Event/Timer、ACPI 反编译、Secure Boot、内存编辑）两架构一致；串口调试走固件的 `EFI_SERIAL_IO_PROTOCOL`（无硬编码地址，找不到时静默降级）。已验证于 QEMU virt（ArmVirtQemu/CLANGPDB 固件）与鲲鹏 920B 真机。固件构建（AARCH64 的 ArmVirtQemu）必须用 CLANGPDB 工具链（MSVC 编不了 .S 汇编，见 `patches/edk2-armvirt-usb-mouse.patch` 头部说明）。
 
 ## 运行
 
@@ -222,7 +230,7 @@ MIT License。参见 [LICENSE](LICENSE)。
 
 # gudumpinfo — Graphic UEFI System Info Viewer
 
-gudumpinfo is a GUI system-information viewer that runs directly in the **UEFI Shell** — the UEFI-world equivalent of a desktop system-info tool, without any operating system underneath. Built on the LVGL graphics library with a fully simplified-Chinese UI (built-in SimSun CJK font) and mouse & keyboard input, it covers everything a firmware developer needs for day-to-day debugging: handles/protocols, devices, drivers, mappings, memory map, GCD, PCI tree, USB tree, SMBIOS, UEFI variables, HOB list, ACPI tables — and a deep **CPUID** analyzer.
+gudumpinfo is a GUI system-information viewer that runs directly in the **UEFI Shell** — the UEFI-world equivalent of a desktop system-info tool, without any operating system underneath. Built on the LVGL graphics library with a fully simplified-Chinese UI (built-in SimSun CJK font) and mouse & keyboard input, it covers everything a firmware developer needs for day-to-day debugging: handles/protocols, devices, drivers, mappings, memory map, GCD, PCI tree, USB tree, SMBIOS, UEFI variables, HOB list, ACPI tables — and a deep **CPUID** analyzer. **Supports X64 and AArch64 from a single source tree** (the x86-only views CPUID / IO ports / MSR gray out automatically on AArch64; everything else works identically — see the Build section).
 
 > In the firmware world, finding out what your CPU actually is — or what the ACPI tables really say — shouldn't require a command line.
 
@@ -303,14 +311,22 @@ gudumpinfo/
 
 ## Build
 
-Environment: EDK2 + VS2019 (X64). With WORKSPACE and `PACKAGES_PATH` (edk2 + UEFI_LVGL + this repo) set:
+Environment: EDK2 + VS2019. With WORKSPACE and `PACKAGES_PATH` (edk2 + UEFI_LVGL + AcpicaPkg + this repo) set:
 
 ```cmd
+# One-shot dual-arch build (single version bump; stages qemu_disk / qemu_disk_a64)
+powershell -ExecutionPolicy Bypass -File tools\Build-DualArch.ps1            # default All: X64 + AARCH64
+powershell -ExecutionPolicy Bypass -File tools\Build-DualArch.ps1 -Arch X64  # single-arch fast switch
+
+# or step by step
 powershell -ExecutionPolicy Bypass -File tools\New-BuildVersion.ps1
 build -p GudumpInfoPkg\GudumpInfoPkg.dsc -a X64 -t VS2019 -b DEBUG
+build -p GudumpInfoPkg\GudumpInfoPkg.dsc -a AARCH64 -t VS2019 -b DEBUG
 ```
 
-Output: `Build/GudumpInfoPkg/DEBUG_VS2019/X64/GudumpInfo.efi`
+Output: `Build/GudumpInfoPkg/DEBUG_VS2019/X64/GudumpInfo.efi` and `.../DEBUG_VS2019/AARCH64/GudumpInfo.efi` (same toolchain tag, output dirs separated by `-a`).
+
+**Architecture support:** X64 and AARCH64 from one source tree (`SUPPORTED_ARCHITECTURES = X64|AARCH64`). The AARCH64 MSVC path needs VS2019's ARM64 build tools (`Hostx64/arm64/cl.exe` + `armasm64.exe`); the x86-only views **CPUID / IO ports / MSR gray out automatically on AARCH64** (`GUDUMP_X86_VIEWS` compile-time gating) while all other views — Event/Timer, ACPI disassembly, Secure Boot, memory editor — behave identically; the debug channel uses the firmware's `EFI_SERIAL_IO_PROTOCOL` (no hard-coded address, silent degradation when absent). Verified on QEMU virt (ArmVirtQemu / CLANGPDB firmware) and a Kunpeng 920B board. Building the AARCH64 firmware (ArmVirtQemu) requires the CLANGPDB toolchain (MSVC cannot build the .S assembly — see `patches/edk2-armvirt-usb-mouse.patch` header).
 
 ## Run
 
