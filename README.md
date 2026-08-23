@@ -2,7 +2,7 @@
 
 > [English version below](#english) ｜ [English README](#english)
 
-gudumpinfo 是一个运行在 **UEFI Shell** 中的图形化系统信息查看器，定位类似 Windows 下的系统信息工具，但运行在固件环境里——不依赖任何操作系统。它基于 LVGL 图形库构建，**全简体中文界面**（内置中文字库），鼠标与键盘双输入，覆盖 UEFI 开发者日常排障所需的全部底层信息：Handle/Protocol、设备、驱动、映射、内存映射、GCD、PCI 树、USB 树、SMBIOS、变量、HOB、ACPI 表，以及深度解析的 **CPUID**。**支持 X64 与 AArch64 双架构**（一套源码；AArch64 上 x86 专属视图 CPUID/IO 端口/MSR 自动灰调，其余一致可用，见「构建」节）。
+gudumpinfo 是一个运行在 **UEFI Shell** 中的图形化系统信息查看器，定位类似 Windows 下的系统信息工具，但运行在固件环境里——不依赖任何操作系统。它基于 LVGL 图形库构建，**全简体中文界面**（内置中文字库），鼠标与键盘双输入，覆盖 UEFI 开发者日常排障所需的全部底层信息：Handle/Protocol、设备、驱动、映射、内存映射、GCD、PCI 树、USB 树、SMBIOS、变量、HOB、ACPI 表、深度解析的 **CPUID**、Event/Timer 事件扫描与 **DEPEX 依赖分析**。**支持 X64 与 AArch64 双架构**（一套源码；AArch64 上 x86 专属视图 CPUID/IO 端口/MSR 自动灰调，其余一致可用，见「构建」节）。
 
 > 在固件世界，想看一眼 CPU 到底是什么、ACPI 表里写了什么，不该只能敲命令。
 
@@ -32,10 +32,10 @@ gudumpinfo 是一个运行在 **UEFI Shell** 中的图形化系统信息查看�
 
 ## 功能特性
 
-- **19 个信息视图 + 5 个开发中占位**（主界面按钮导航，按钮栏 12 列，两行 24 个按钮排布；SPD/SMBus-I2C/TPM/Dependency/EC 为即将推出的功能占位，点击提示"开发中"；Event/Timer 紧随协议中心之后）：
-  - **Handle/Protocol**：handle → 挂载的 protocol（**590+ 条可读名表**：edk2 全包 + gEdkii + MTL 平台协议，附**常用缩写别名**如 Graphics Output (GOP)；协议行显示**安装计数**「· N 个 handle」，点击反向查询）→ DevicePath
+- **20 个信息视图 + 4 个开发中占位**（主界面按钮导航，按钮栏 12 列，两行 24 个按钮排布；SPD/SMBus-I2C/TPM/EC 为即将推出的功能占位，点击提示"开发中"；DEPEX 分析紧邻 Event/Timer 之后）：
+  - **Handle/Protocol**：handle → 挂载的 protocol（**590+ 条可读名表**：edk2 全包 + gEdkii + MTL 平台协议，附**常用缩写别名**如 Graphics Output (GOP)；协议行显示**安装计数**「· N 个 handle」，点击反向查询）→ DevicePath；行尾标注驱动/模块名（FFS USER_INTERFACE）
   - **协议（M16）**：系统**全部已安装协议**中心——左协议清单（名字 + 别名 + 安装数，可搜索）→ 右安装它的 handle 列表 → 点击跳回 Handle 视图定位；支持 .gud 保存/载入
-  - **设备列表 / 驱动列表 / 设备映射**：设备路径、**设备实例名**（ComponentName2 尽力而为，如 "QEMU Video PCI Adapter"）、驱动绑定关系、fs0:/blk0: 映射与卷标
+  - **设备列表 / 驱动列表 / 设备映射**：设备路径、**设备实例名**（ComponentName2 尽力而为，如 "QEMU Video PCI Adapter"）、驱动列表（两组：同 Shell `drivers` 命令——拥有 Binding 协议/ 补充——已加载无 Binding 协议，组头双击折叠）、fs0:/blk0: 映射与卷标
   - **内存映射**：GetMemoryMap 描述符，按类型分类/平铺两种视图
   - **GCD**：内存空间 + IO 空间双表，按分类/平铺 + 子页签
   - **PCI 树 / USB 树**：全扫描设备树，配置空间十六进制查看，Enter 跳转对应 Handle
@@ -46,7 +46,8 @@ gudumpinfo 是一个运行在 **UEFI Shell** 中的图形化系统信息查看�
   - **CPUID**：全量 leaf 采集（标准 0x00-0x2F + 扩展 0x80000000-0x26），**表格化逐位域解析**——每行 `位域 | Bits | 值 | 结论 | 说明`，1-bit 特性位显示明确的 **支持/不支持** 结论防误读；**说明列括注当前值**（枚举中文名/十进制，如 `（当前: 8）`，M16）；41 个 leaf 定义、2470 个位域、577 条中文解释（含 Key Locker/PCONFIG/LBR/AMX/TMUL/SGX/ArchPerfmon 及 AMD Zen4/Zen5 全系，均自 Intel SDM / AMD APM 查证）；**平台识别**（Meteor Lake/Arrow Lake/Panther Lake 等型号表自官方 EDS）；清单三组（标准/扩展/**未定义**）可折叠
   - **IO 端口**：x86 IO 空间（0x0000-0xFFFF）**Byte/Word/DWord 三种宽度读写**——窗口式浏览（256 端口/窗，翻窗不自动读）、内置**常用端口注解表**（约 60 端口：DMA/PIC/PIT/键盘/CMOS/POST/串并口/ATA/VGA/PCI 配置等，危险端口红/橙标记）；**强写保护**：进入零读取、一切访问显式触发；写操作三级管控——普通端口一次确认、**危险端口**（PIC/PIT/DMA/CMOS/PCI 配置 0xCF8/0xCFC 等）**二次确认**、**致命端口**（复位 0xCF9/0x92、CMOS 索引 0x70、键盘命令 0x64、SuperIO 索引）**直接拒绝**；宽度对齐硬规则（奇数端口仅 Byte）；副作用读端口（0x60/0x64）警告条提示；PCI 配置空间读取（0xCF8 写地址 + 0xCFC 读数据）
   - **MSR**：x86 模型特定寄存器**读写**——左侧分组 MSR 清单（**1359 条自动生成知识表**：MdePkg 架构 MSR 358 + MTL 平台特有 1001，含地址/名称/位域/只读标志，按组折叠），右侧 **64 位值 + 逐位域解析表**（位范围/字段名/值/说明），**MTRR 专门解析**（PHYSBASE/PHYSMASK 配对算内存区间：从哪到哪、大小、UC/WC/WT/WP/WB 类型；固定范围段摘要；DEF_TYPE 默认类型 + FE/E 启用位）；顶部 CPU 摘要条（型号/微码/缓存/核心线程/频率/温度）；**核选择 + 全核批量读**（MP Services 逐核执行）；**写入三级保护**（致命置灰/危险二次确认/普通一次确认，默认禁写需 ⚙ 设置开启）；**危险读拦截**（APIC/X2APIC 读取会死机的寄存器红字警示且不执行读取）；可选 **#GP 安全读钩子**（EFI_CPU_ARCH_PROTOCOL，默认关）
-  - **Event/Timer（新增）**：**全系统事件与定时器扫描**——内存扫描 EDK2 `IEVENT` 事件对象（'evnt' 签名 + 多层结构校验 + 自校准验证固件兼容性），左侧分组列表 **Event**（组事件/协议通知事件，组头显示计数可折叠）/ **Timer**（周期定时器，显示周期估算与挂载状态），右侧逐字段详情（事件类型位解读、通知级别、通知函数地址与**所属模块名**（OVMF GUID 映射表 / 真机 DEBUG BIOS 的 PDB 反查，回退 DevicePath）、事件组 GUID、触发计数、ExFlag、Timer 周期/下次触发）；协议通知事件解析**挂载协议名**（如 Loaded Image）；详情下方**「查看句柄」链接一键跳转 Handle 视图**；全局搜索**大小写不敏感模糊匹配**（搜 "exit" 命中 ExitBootServices 组事件，也可按协议名/模块名/通知级别过滤）；.gud 保存/载入（168 字节定长条目）
+  - **Event/Timer（新增）**：**全系统事件与定时器扫描**——内存扫描 EDK2 `IEVENT` 事件对象（'evnt' 签名 + 多层结构校验 + 自校准验证固件兼容性），左侧分组列表 **Event**（组事件/协议通知事件，组头显示计数可折叠）/ **Timer**（周期定时器，显示周期估算与挂载状态），右侧逐字段详情（事件类型位解读、通知级别、通知函数地址与**所属模块名**（OVMF GUID 映射表 / 真机 DEBUG BIOS 的 PDB 反查，回退 DevicePath）、事件组 GUID、触发计数、ExFlag、Timer 周期/下次触发）；协议通知事件解析**挂载协议名**（如 Loaded Image）；详情下方**「查看句柄」链接一键跳转 Handle 视图**；列表行首显式**箭头语义**（事件组名/协议名 → 回调模块!函数偏移，可点击展开回调链），协议通知事件标注挂载协议名，触发计数「×N」，底部状态栏汇总「有 hook K · 纯回调 P」；全局搜索**大小写不敏感模糊匹配**（搜 "exit" 命中 ExitBootServices 组事件，也可按协议名/模块名/通知级别过滤）；.gud 保存/载入（168 字节定长条目）
+  - **DEPEX 分析（新增）**：DXE 驱动依赖表达式**全量对账**——扫描固件卷内全部驱动镜像（FFS 解析 + USER_INTERFACE 模块名），对每个依赖表达式逐字节求值（PHIT 编码：BEFORE/AFTER/PUSH/AND/OR/NOT/TRUE/FALSE/SOR），与系统实际挂载/调度状态比对，按**缺协议依赖**（给出**最小致缺**结论：缺哪个协议无法满足）、**恒假表达式**、**加载失败疑点**（对应句柄已载入但镜像缺失或未跑起来）、**其他类型**（PEIM/SMM/嵌套卷等非调度对象与无法分析项——镜像压缩、依赖超长、含过时操作符、依赖字节流畸形，各项注明中文原因，无法分析项并入其他类型）分组，组头双击折叠；**已调度**条目可直接跳转对应句柄；行摘要「驱动名 缺 <协议名>，依赖无法满足」；过滤走顶部全局搜索框——排查"该有的驱动为何没跑"，不必再手工对 FV 与负载镜像
   - **Secure Boot**：安全启动状态与证书库**只读**查看——顶部**摘要条**（Secure Boot 启用/禁用徽标 + **派生模式**：设置/用户/部署/审计（SetupMode/DeployedMode/AuditMode 规范状态机推导）+ 签名类型数 + 认证变量数，第二行各库 `类型:数量` 一览，点击"签名类型:N"弹详情）；左列表**六个标准签名库**（PK/KEK/db/dbx/dbt/dbr）+ Default 系列（PKDefault/KEKDefault/dbDefault/dbxDefault）+ **全部认证变量**（EFI_VARIABLE_AUTHENTICATED_ACCESS_ACCESS 属性的第三方变量，如 shim 的 MokList，按名称排序、上限 64）；右表格条目列（序号/签名类型/主题 CN 或哈希摘要/大小），选中条目**X509 证书详细解析**（手写轻量 DER：subject/issuer 的 CN/O/C/OU、序列号、有效期、公钥算法与位数、**SHA256 指纹**），SHA256 哈希类签名显示完整 32 字节；库缺失显示"（不存在）"灰字、签名列表越界显示"（解析失败）"红字且不影响其他库；Tab 左库/右条目双焦点区、Ctrl+F 搜索库名；数据源全部为 UEFI 变量（SecureBoot/SetupMode/PK/KEK/db/dbx 等），不含 enroll/写入操作
   - **Save As / Load From File（M15）**：文件菜单"**保存当前视图为文件…**"（Ctrl+S）/ "**从文件载入…**"（Ctrl+L）——把任意视图采集的原始数据保存为 `.gud` 文件（弹窗选卷 + 推荐文件名 `gud_<功能>_<时间戳>.gud`），可在另一台机器/QEMU 上**数据级回放**（ACPI 载入后可重新反编译、内存编辑载入后可查看编辑，状态栏标记"已载入"）；文件头含 `GUDINFO` 大签名 + 功能小签名 + 双字节和校验，损坏/截断文件容错解析（非法记录跳过，部分可用也载入）；**16 个视图**（除 IO 端口）全部支持，载入自动路由到对应视图，Ctrl+R 恢复实时数据——真机故障现场可 Save 下来在 QEMU 上复现调试
 - **搜索**：全局搜索框，**大小写不敏感**匹配标题、协议名与**别名**（搜 "GOP" 命中 Graphics Output）、十六进制 leaf 号、位域名与中文解释
@@ -55,7 +56,7 @@ gudumpinfo 是一个运行在 **UEFI Shell** 中的图形化系统信息查看�
 
 ## 界面一览
 
-主界面自上而下：菜单栏（文件：刷新/保存/载入/退出；帮助：关于）→ 搜索框 → 两行 11 列 22 个功能按钮 → 内容区（左侧清单 + 右侧详情，或自定义内容）→ 状态栏（`视图 · N 条目`）。
+主界面自上而下：菜单栏（文件：刷新/保存/载入/退出；帮助：关于）→ 搜索框 → 两行 12 列 24 个功能按钮（20 个已实现 + 4 个开发中占位）→ 内容区（左侧清单 + 右侧详情，或自定义内容）→ 状态栏（`视图 · N 条目`）。
 
 ![协议中心视图](screenshot/02_protocol_center.png)
 
@@ -105,11 +106,19 @@ ACPI 视图：全部 ACPI 表按分类列出，普通表逐字段解析（FADT/M
 
 协议中心点击协议行 → 反查安装它的 handle 列表 → 点击跳回 Handle 视图定位。
 
+![Event/Timer 视图](screenshot/ev_overview.png)
+
+Event/Timer 视图：左侧 **Event**（组事件/协议通知事件，组头显示计数可折叠）+ **Timer**（周期定时器，周期估算与挂载状态）两组列表，行首箭头「事件组名 → 回调模块!偏移」指示事件组牵动的回调链；右侧逐字段详情（通知函数所属模块名、事件组 GUID、触发计数 ×N 等），详情下方「查看句柄」一键定位；底部状态栏汇总「有 hook / 纯回调」——回答"固件里这些信号到底牵动了谁"。
+
+![DEPEX 分析视图](screenshot/dep_overview.png)
+
+DEPEX 分析视图：对固件卷内全部 DXE 驱动做依赖表达式**全量求值**并与调度真值对账，按缺依赖（最小致缺：缺哪个协议无法满足）/恒假/加载失败疑点/其他类型/已调度五组分组（组头双击折叠），每行摘要「驱动名 缺 <协议名>，依赖无法满足」，已调度条目可跳转句柄——直接回答"这个驱动为什么没起来"。
+
 ## 产品手册
 
 为第一次二进制发布编写，随发布物提供：
 
-- **[功能演示 GIF](docs/manual/gudumpinfo-overview.gif)**：18 帧串联主界面与全部 18 个功能视图（每帧 1.2 秒循环播放）
+- **[功能演示 GIF](docs/manual/gudumpinfo-overview.gif)**：20 帧串联主界面与全部 20 个功能视图（每帧 1.2 秒循环播放）
 - **[说明书（简版）](docs/manual/gudumpinfo-说明书-简版.md)**（[Word 版](docs/manual/gudumpinfo-说明书-简版.docx)）：一页半快览——功能一览表、独家亮点（协议反查、590 条可读协议名、CPUID 位域当前值、文件模式等）、三步上手
 - **[说明书（详版）](docs/manual/gudumpinfo-说明书-详版.md)**（[Word 版](docs/manual/gudumpinfo-说明书-详版.docx)）：10+ 页完整手册——每个功能"怎么用 + 解决什么问题"，含全局搜索/文件模式/快捷键表/已知限制
 
@@ -140,8 +149,8 @@ gudumpinfo/
 ├── tools/                     # 构建与验证脚本（New-BuildVersion / Build-HostTests / Run-Qemu*）
 ├── tests/host/                # 主机侧单元测试（VS2019 cl.exe 直编，6000+ checks）
 ├── qemu_disk/                 # QEMU 运行盘（gudumpinfo.efi + startup.nsh）
-├── docs/manual/               # 产品手册（简版/详版 md + docx、演示 GIF、配图 24 张）
-└── screenshot/                # 功能截图（01_main_handle.png ~ 24_proto_reverse.png）
+├── docs/manual/               # 产品手册（简版/详版 md + docx、演示 GIF、配图 31 张）
+└── screenshot/                # 功能截图（01_main_handle.png ~ 24_proto_reverse.png + ev/dep_overview.png）
 ```
 
 ## 构建
@@ -183,7 +192,7 @@ Shell> gudumpinfo.efi
 
 | 功能 | 截图 |
 |---|---|
-| 主界面（22 按钮）+ Handle 视图 | ![主界面](screenshot/01_main_handle.png) |
+| 主界面（24 按钮，20 已实现 + 4 占位）+ Handle 视图（行尾驱动模块名） | ![主界面](screenshot/01_main_handle.png) |
 | 协议中心（M16） | ![协议中心](screenshot/02_protocol_center.png) |
 | Driver 列表 | ![驱动](screenshot/03_driver.png) |
 | Device 列表（设备实例名） | ![设备](screenshot/04_device.png) |
@@ -207,6 +216,8 @@ Shell> gudumpinfo.efi
 | 载入对话框 | ![载入](screenshot/22_load_dlg.png) |
 | 关于对话框 | ![关于](screenshot/23_about.png) |
 | 协议反查跳转 | ![反查](screenshot/24_proto_reverse.png) |
+| Event/Timer（组名/协议名 → 回调模块箭头、自定义信号、×N 触发计数） | ![Event/Timer](screenshot/ev_overview.png) |
+| DEPEX 分析（缺依赖/恒假/加载失败疑点分组，最小致缺提示） | ![DEPEX](screenshot/dep_overview.png) |
 
 ## 已知限制
 
@@ -230,7 +241,7 @@ MIT License。参见 [LICENSE](LICENSE)。
 
 # gudumpinfo — Graphic UEFI System Info Viewer
 
-gudumpinfo is a GUI system-information viewer that runs directly in the **UEFI Shell** — the UEFI-world equivalent of a desktop system-info tool, without any operating system underneath. Built on the LVGL graphics library with a fully simplified-Chinese UI (built-in SimSun CJK font) and mouse & keyboard input, it covers everything a firmware developer needs for day-to-day debugging: handles/protocols, devices, drivers, mappings, memory map, GCD, PCI tree, USB tree, SMBIOS, UEFI variables, HOB list, ACPI tables — and a deep **CPUID** analyzer. **Supports X64 and AArch64 from a single source tree** (the x86-only views CPUID / IO ports / MSR gray out automatically on AArch64; everything else works identically — see the Build section).
+gudumpinfo is a GUI system-information viewer that runs directly in the **UEFI Shell** — the UEFI-world equivalent of a desktop system-info tool, without any operating system underneath. Built on the LVGL graphics library with a fully simplified-Chinese UI (built-in SimSun CJK font) and mouse & keyboard input, it covers everything a firmware developer needs for day-to-day debugging: handles/protocols, devices, drivers, mappings, memory map, GCD, PCI tree, USB tree, SMBIOS, UEFI variables, HOB list, ACPI tables, a deep **CPUID** analyzer, an **Event/Timer scan** and a **DEPEX dependency-analysis** view. **Supports X64 and AArch64 from a single source tree** (the x86-only views CPUID / IO ports / MSR gray out automatically on AArch64; everything else works identically — see the Build section).
 
 > In the firmware world, finding out what your CPU actually is — or what the ACPI tables really say — shouldn't require a command line.
 
@@ -244,10 +255,10 @@ gudumpinfo is a GUI system-information viewer that runs directly in the **UEFI S
 
 ## Features
 
-- **19 information views + 5 upcoming placeholders** (button-navigated, 11-column button bar, 22 buttons in two full rows; Event/SPD/SMBus-I2C/TPM are upcoming-feature placeholders showing a "under development" notice when clicked):
-  - **Handles/Protocols**: handle → protocols (**590+ entry readable-name table**: all edk2 packages + gEdkii + MTL platform protocols, with **common abbreviations** such as Graphics Output (GOP); each protocol row shows its **install count** "· N handles", click for reverse lookup) → DevicePath
+- **20 information views + 4 upcoming placeholders** (button-navigated, 12-column button bar, 24 buttons in two full rows; SPD/SMBus-I2C/TPM/EC are upcoming-feature placeholders showing a "under development" notice when clicked; DEPEX analysis sits right after Event/Timer):
+  - **Handles/Protocols**: handle → protocols (**590+ entry readable-name table**: all edk2 packages + gEdkii + MTL platform protocols, with **common abbreviations** such as Graphics Output (GOP); each protocol row shows its **install count** "· N handles", click for reverse lookup) → DevicePath; module name appended per row (from the FFS USER_INTERFACE section)
   - **Protocols (M16)**: an **all-installed-protocols** center — left list (name + alias + install count, searchable) → right list of owning handles → click to jump back to the Handle view; .gud save/load supported
-  - **Devices / Drivers / Mappings**: device paths, **device instance names** (best-effort via ComponentName2, e.g. "QEMU Video PCI Adapter"), driver bindings, fs0:/blk0: volumes
+  - **Devices / Drivers / Mappings**: device paths, **device instance names** (best-effort via ComponentName2, e.g. "QEMU Video PCI Adapter"); the driver list has **two groups** (same semantics as the Shell `drivers` command — has a Binding protocol / supplement — loaded without one, collapsible headers); fs0:/blk0: volumes
   - **Memory Map**: GetMemoryMap descriptors, grouped or flat
   - **GCD**: memory + IO space maps with sub-tabs
   - **PCI / USB trees**: full-scanned device trees, config-space hex viewer, Enter jumps to the device's handle page
@@ -267,7 +278,10 @@ gudumpinfo is a GUI system-information viewer that runs directly in the **UEFI S
   with **module name** (OVMF GUID map / PDB reverse lookup on real
   DEBUG BIOS, DevicePath fallback), event group GUID, signal count,
   ExFlag, timer period/next-trigger); protocol-notification events show
-  the **mounted protocol name** (e.g. Loaded Image); a **View Handle**
+  the **mounted protocol name** (e.g. Loaded Image); rows carry an
+  explicit **arrow semantics** (group name → callback module!offset,
+  clickable to expand the callback chain) and a **×N trigger count**;
+  the status bar summarizes "有 hook K · 纯回调 P"; a **View Handle**
   link below the detail jumps to the Handle view; global search
   case-insensitive fuzzy match ("exit" hits ExitBootServices group
   events; also by protocol/module name, notify level); .gud save/load
@@ -305,8 +319,8 @@ gudumpinfo/
 ├── tools/                     # Build & verification scripts (New-BuildVersion / Build-HostTests / Run-Qemu*)
 ├── tests/host/                # Host-side unit tests (VS2019 cl.exe, 6000+ checks)
 ├── qemu_disk/                 # QEMU boot disk (gudumpinfo.efi + startup.nsh)
-├── docs/manual/               # Product manuals (brief/detailed md + docx, demo GIF, 24 screenshots)
-└── screenshot/                # Feature screenshots (01_main_handle.png ~ 24_proto_reverse.png)
+├── docs/manual/               # Product manuals (brief/detailed md + docx, demo GIF, 31 screenshots)
+└── screenshot/                # Feature screenshots (01_main_handle.png ~ 24_proto_reverse.png + ev/dep_overview.png)
 ```
 
 ## Build
@@ -348,7 +362,7 @@ Mouse support requires an OVMF build with the USB mouse driver (`-device usb-mou
 
 | Feature | Screenshot |
 |---|---|
-| Main window (22 buttons) + Handle view | ![main](screenshot/01_main_handle.png) |
+| Main window (24 buttons: 20 built + 4 placeholders) + Handle view | ![main](screenshot/01_main_handle.png) |
 | Protocols center (M16) | ![protocols center](screenshot/02_protocol_center.png) |
 | Driver list | ![drivers](screenshot/03_driver.png) |
 | Device list (instance names) | ![devices](screenshot/04_device.png) |
@@ -372,6 +386,8 @@ Mouse support requires an OVMF build with the USB mouse driver (`-device usb-mou
 | Load dialog | ![load](screenshot/22_load_dlg.png) |
 | About dialog | ![about](screenshot/23_about.png) |
 | Protocol reverse lookup | ![reverse](screenshot/24_proto_reverse.png) |
+| Event/Timer (arrow semantics, custom signals, ×N counts) | ![event](screenshot/ev_overview.png) |
+| DEPEX analysis (missing-dep / always-false / load-fail groups) | ![depex](screenshot/dep_overview.png) |
 
 ## Known Limitations
 
