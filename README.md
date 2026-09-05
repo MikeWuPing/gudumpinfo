@@ -149,7 +149,7 @@ Shell> gudumpinfo.efi
 
 鼠标验证需要带 USB 鼠标驱动的 OVMF 固件（`-device usb-mouse`；上游 OVMF 默认不含，见 [UEFI_LVGL](https://github.com/MikeWuPing/UEFI_LVGL) 仓库的补丁说明）。一键运行：`tools/Run-GudumpInfoQemu.ps1`（SDL 交互窗口）。
 
-**Live CD（UEFI 启动 ISO，不需要 Shell）**：`tools\New-BootIso.ps1` 一把生成 `dist\gudumpinfo-boot-<版本>.iso`——ISO9660 + UDF bridge + El Torito EFI 引导（双架构 `EFI\BOOT\BOOTX64.EFI`/`BOOTAA64.EFI`，OVMF 读 UDF 层、真实固件读 ISO9660，两面都覆盖）。用途：把 ISO 内容拷到 FAT32 U 盘根目录或刻录/挂载，固件 UEFI 模式从该介质启动——**没有 UEFI Shell、没有操作系统也能直接进入 gudumpinfo 主界面**（固件 Boot Manager 直启 BOOTX64.EFI）。注意 Secure Boot 须关闭（镜像未签名，用后建议恢复）。ISO 引导闭环验证：`tools\Run-BootIsoVerify.ps1`（QEMU `-cdrom`，无盘无 Shell 断言 APP_VERSION + 截图 + 干净退出）。
+**Live CD（UEFI 启动 ISO，不需要 Shell）**：`tools\New-BootIso.ps1` 一把生成 `dist\gudumpinfo-boot-<版本>.iso`——ISO9660 + UDF bridge + El Torito EFI 引导（双架构 `EFI\BOOT\BOOTX64.EFI`/`BOOTAA64.EFI`，OVMF 读 UDF 层、真实固件读 ISO9660，两面都覆盖）。用途：把 ISO 内容拷到 FAT32 U 盘根目录或刻录/挂载，固件 UEFI 模式从该介质启动——**没有 UEFI Shell、没有操作系统也能直接进入 gudumpinfo 主界面**（固件 Boot Manager 直启 BOOTX64.EFI；本镜像与 **Ventoy** 兼容（拷进 Ventoy U 盘、正常模式启动即可，勿选 GRUB2 模式））。注意 Secure Boot 须关闭（镜像未签名，用后建议恢复）。ISO 引导闭环验证：`tools\Run-BootIsoVerify.ps1`（QEMU `-cdrom`，无盘无 Shell 断言 APP_VERSION + 截图 + 干净退出）。
 
 ## 截图展示
 
