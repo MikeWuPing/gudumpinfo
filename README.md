@@ -2,7 +2,7 @@
 
 > [English version below](#english) ｜ [English README](#english)
 
-> **版本 0.1.514（2026-09-05）** ｜ [Latest Release](https://github.com/MikeWuPing/gudumpinfo/releases)
+> **版本 0.1.515（2026-09-07）** ｜ [Latest Release](https://github.com/MikeWuPing/gudumpinfo/releases)
 
 gudumpinfo 是一个运行在 **UEFI Shell** 中的图形化系统信息查看器，定位类似 Windows 下的系统信息工具，但运行在固件环境里——不依赖任何操作系统。它基于 LVGL 图形库构建，**全简体中文界面**（内置中文字库），鼠标与键盘双输入，覆盖 UEFI 开发者日常排障所需的全部底层信息：Handle/Protocol、设备、驱动、映射、内存映射、GCD、PCI 树、USB 树、SMBIOS、变量、HOB、ACPI 表，以及深度解析的 **CPUID**，并新增 **DEPEX 分析**（DXE 驱动依赖表达式枚举求值——未调度驱动一网打尽：缺哪个协议、最小致缺、句柄跳转）。**支持 X64 与 AArch64 双架构**（一套源码；AArch64 上 x86 专属视图 CPUID/IO 端口/MSR 自动灰调，其余一致可用，见「构建」节）。
 
@@ -135,7 +135,7 @@ gudumpinfo/
 ├── VERSION.txt                # 版本
 ├── GudumpInfo.efi             # X64 可执行文件
 ├── GudumpInfo-AARCH64.efi     # ARM64 可执行文件
-├── gudumpinfo-boot-0.1.514.iso  # Live CD：UEFI 启动镜像（免 Shell）
+├── gudumpinfo-boot-0.1.515.iso  # Live CD：UEFI 启动镜像（免 Shell）
 └── docs/manual/               # 产品手册（简版/详版 md + docx、演示 GIF、全部配图）
 ```
 
@@ -217,7 +217,7 @@ MIT License。参见 [LICENSE](LICENSE)。
 
 gudumpinfo is a GUI system-information viewer that runs directly in the **UEFI Shell** — the UEFI-world equivalent of a desktop system-info tool, without any operating system underneath. Built on the LVGL graphics library with a fully simplified-Chinese UI (built-in SimSun CJK font) and mouse & keyboard input, it covers everything a firmware developer needs for day-to-day debugging: handles/protocols, devices, drivers, mappings, memory map, GCD, PCI tree, USB tree, SMBIOS, UEFI variables, HOB list, ACPI tables — and a deep **CPUID** analyzer. **Supports X64 and AArch64 from a single source tree** (the x86-only views CPUID / IO ports / MSR gray out automatically on AArch64; everything else works identically — see the Build section).
 
-**Version 0.1.514 (2026-09-05)** ｜ [Latest Release](https://github.com/MikeWuPing/gudumpinfo/releases)
+**Version 0.1.515 (2026-09-07)** ｜ [Latest Release](https://github.com/MikeWuPing/gudumpinfo/releases)
 
 
 
@@ -288,7 +288,7 @@ gudumpinfo/
 ├── VERSION.txt                # Version
 ├── GudumpInfo.efi             # X64 binary
 ├── GudumpInfo-AARCH64.efi     # ARM64 binary
-├── gudumpinfo-boot-0.1.514.iso  # Live CD: bootable UEFI image (no Shell)
+├── gudumpinfo-boot-0.1.515.iso  # Live CD: bootable UEFI image (no Shell)
 └── docs/manual/               # Product manuals (brief/detailed md + docx, demo GIF, all screenshots)
 ```
 
