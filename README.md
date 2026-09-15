@@ -2,7 +2,7 @@
 
 > [English version below](#english) ｜ [English README](#english)
 
-> **版本 0.1.515（2026-09-07）** ｜ [Latest Release](https://github.com/MikeWuPing/gudumpinfo/releases)
+> **版本 0.1.551（2026-09-15）** ｜ [Latest Release](https://github.com/MikeWuPing/gudumpinfo/releases)
 
 gudumpinfo 是一个运行在 **UEFI Shell** 中的图形化系统信息查看器，定位类似 Windows 下的系统信息工具，但运行在固件环境里——不依赖任何操作系统。它基于 LVGL 图形库构建，**全简体中文界面**（内置中文字库），鼠标与键盘双输入，覆盖 UEFI 开发者日常排障所需的全部底层信息：Handle/Protocol、设备、驱动、映射、内存映射、GCD、PCI 树、USB 树、SMBIOS、变量、HOB、ACPI 表，以及深度解析的 **CPUID**，并新增 **DEPEX 分析**（DXE 驱动依赖表达式枚举求值——未调度驱动一网打尽：缺哪个协议、最小致缺、句柄跳转）。**支持 X64 与 AArch64 双架构**（一套源码；AArch64 上 x86 专属视图 CPUID/IO 端口/MSR 自动灰调，其余一致可用，见「构建」节）。
 
@@ -53,12 +53,20 @@ gudumpinfo 是一个运行在 **UEFI Shell** 中的图形化系统信息查看�
   - **Secure Boot**：安全启动状态与证书库**只读**查看——顶部**摘要条**（Secure Boot 启用/禁用徽标 + **派生模式**：设置/用户/部署/审计（SetupMode/DeployedMode/AuditMode 规范状态机推导）+ 签名类型数 + 认证变量数，第二行各库 `类型:数量` 一览，点击"签名类型:N"弹详情）；左列表**六个标准签名库**（PK/KEK/db/dbx/dbt/dbr）+ Default 系列（PKDefault/KEKDefault/dbDefault/dbxDefault）+ **全部认证变量**（EFI_VARIABLE_AUTHENTICATED_ACCESS_ACCESS 属性的第三方变量，如 shim 的 MokList，按名称排序、上限 64）；右表格条目列（序号/签名类型/主题 CN 或哈希摘要/大小），选中条目**X509 证书详细解析**（手写轻量 DER：subject/issuer 的 CN/O/C/OU、序列号、有效期、公钥算法与位数、**SHA256 指纹**），SHA256 哈希类签名显示完整 32 字节；库缺失显示"（不存在）"灰字、签名列表越界显示"（解析失败）"红字且不影响其他库；Tab 左库/右条目双焦点区、Ctrl+F 搜索库名；数据源全部为 UEFI 变量（SecureBoot/SetupMode/PK/KEK/db/dbx 等），不含 enroll/写入操作
   - **Save As / Load From File（M15）**：文件菜单"**保存当前视图为文件…**"（Ctrl+S）/ "**从文件载入…**"（Ctrl+L）——把任意视图采集的原始数据保存为 `.gud` 文件（弹窗选卷 + 推荐文件名 `gud_<功能>_<时间戳>.gud`），可在另一台机器/QEMU 上**数据级回放**（ACPI 载入后可重新反编译、内存编辑载入后可查看编辑，状态栏标记"已载入"）；文件头含 `GUDINFO` 大签名 + 功能小签名 + 双字节和校验，损坏/截断文件容错解析（非法记录跳过，部分可用也载入）；除 IO 端口外**所有视图**全部支持，载入自动路由到对应视图，Ctrl+R 恢复实时数据——真机故障现场可 Save 下来在 QEMU 上复现调试
 - **搜索**：全局搜索框，**大小写不敏感**匹配标题、协议名与**别名**（搜 "GOP" 命中 Graphics Output）、十六进制 leaf 号、位域名与中文解释
-- **键盘焦点**：Windows 风格 Tab 区域切换，焦点高亮/失焦低亮；Esc 三级处理、Ctrl+R 刷新
+- **界面外观**：深/浅两档**毛玻璃**（壁纸 + 降采样模糊 + 半透明玻璃卡片，整屏铺底、布局零位移）；菜单栏「视图 → 深色/浅色毛玻璃」切换，选择写入**启动卷的 `gudumpinfo.cfg`**（`theme=dark|light`，缺省深色），重启应用生效；只读介质（Ventoy 启动盘等）写失败只提示、不影响使用
+- **纯键盘操作**：Windows 风格 **Tab 焦点区循环**（菜单 → 搜索 → 类别按钮 → 列表 → 详情/动作区 → 编辑器），焦点高亮/失焦低亮，状态栏显示当前区名；**菜单可全程无鼠标操作**（←/→ 切换 文件/帮助/视图，↓ 或 Enter 展开，↑/↓ 选项，Enter 执行，Esc 收起，菜单开着时 Tab 关菜单并推进焦点）；**对话框内 Tab 在按钮/开关间循环**（确认框 确定/取消、存/取窗口控件环、MSR 设置三控件），Enter/Space 激活焦点控件；Esc 三级处理（清搜索 → 视图返回 → 关对话框）、Ctrl+F 搜索、Ctrl+S/Ctrl+L 存/取、Ctrl+R 刷新
+- **鼠标**：支持**滚轮滚动**（列表/详情/菜单）与左键拖动滚动；**固件没有鼠标驱动时自动接管**——app 内自带 USB HID boot mouse 驱动，扫描 USB 设备、切换到 boot 协议、安装 SimplePointer，退出时把设备归还固件；固件已有真实指针设备时不介入（避免同一端点两个消费者分食报文）
 - **自绘表格组件**：虚拟滚动（仿 CodeView），千行级数据无内存压力
 
 ## 界面一览
 
-主界面自上而下：菜单栏（文件：刷新/保存/载入/退出；帮助：关于）→ 搜索框 → 两行 12 列 24 个功能按钮 → 内容区（左侧清单 + 右侧详情，或自定义内容）→ 状态栏（`视图 · N 条目`，底部中央黄字提示全局滚屏方式）。
+主界面自上而下：菜单栏（文件：刷新/保存/载入/退出；帮助：关于；视图：深/浅毛玻璃）→ 搜索框 → 两行 12 列 24 个功能按钮 → 内容区（左侧清单 + 右侧详情，或自定义内容）→ 状态栏（`视图 · N 条目` + 焦点区名，底部中央黄字提示滚屏方式：**滚轮或者左键拖动**）。
+
+界面为深/浅两档毛玻璃：壁纸经降采样模糊后整屏铺底，菜单栏/搜索栏/按钮栏为半透明 chrome 条，内容面板半透明、正文保持高对比（面板不透明度按 WCAG AA 正文对比度反推）。
+
+| 深色毛玻璃（默认） | 浅色毛玻璃（视图菜单切换，cfg 持久化） |
+|---|---|
+| ![深色毛玻璃](docs/manual/images/01_main_handle.png) | ![浅色毛玻璃](docs/manual/images/01_main_handle_light.png) |
 
 ![协议中心视图](docs/manual/images/02_protocol_center.png)
 
@@ -135,7 +143,7 @@ gudumpinfo/
 ├── VERSION.txt                # 版本
 ├── GudumpInfo.efi             # X64 可执行文件
 ├── GudumpInfo-AARCH64.efi     # ARM64 可执行文件
-├── gudumpinfo-boot-0.1.515.iso  # Live CD：UEFI 启动镜像（免 Shell）
+├── gudumpinfo-boot-0.1.551.iso  # Live CD：UEFI 启动镜像（免 Shell）
 └── docs/manual/               # 产品手册（简版/详版 md + docx、演示 GIF、全部配图）
 ```
 
@@ -153,9 +161,12 @@ Shell> gudumpinfo.efi
 
 ## 截图展示
 
+全部截图为 0.1.551 构建实拍（1280×800）。
+
 | 功能 | 截图 |
 |---|---|
-| 主界面（12 列 24 按钮，20 已实现 + 4 占位）+ Handle 视图（行尾驱动模块名） | ![主界面](docs/manual/images/01_main_handle.png) |
+| 主界面（12 列 24 按钮，20 已实现 + 4 占位）+ Handle 视图（行尾驱动模块名）；深色毛玻璃 | ![主界面](docs/manual/images/01_main_handle.png) |
+| 浅色毛玻璃（视图菜单切换，`gudumpinfo.cfg` 持久化） | ![浅色主界面](docs/manual/images/01_main_handle_light.png) |
 | 协议中心（M16） | ![协议中心](docs/manual/images/02_protocol_center.png) |
 | Driver 列表 | ![驱动](docs/manual/images/03_driver.png) |
 | Device 列表（设备实例名） | ![设备](docs/manual/images/04_device.png) |
@@ -217,7 +228,7 @@ MIT License。参见 [LICENSE](LICENSE)。
 
 gudumpinfo is a GUI system-information viewer that runs directly in the **UEFI Shell** — the UEFI-world equivalent of a desktop system-info tool, without any operating system underneath. Built on the LVGL graphics library with a fully simplified-Chinese UI (built-in SimSun CJK font) and mouse & keyboard input, it covers everything a firmware developer needs for day-to-day debugging: handles/protocols, devices, drivers, mappings, memory map, GCD, PCI tree, USB tree, SMBIOS, UEFI variables, HOB list, ACPI tables — and a deep **CPUID** analyzer. **Supports X64 and AArch64 from a single source tree** (the x86-only views CPUID / IO ports / MSR gray out automatically on AArch64; everything else works identically — see the Build section).
 
-**Version 0.1.515 (2026-09-07)** ｜ [Latest Release](https://github.com/MikeWuPing/gudumpinfo/releases)
+**Version 0.1.551 (2026-09-15)** ｜ [Latest Release](https://github.com/MikeWuPing/gudumpinfo/releases)
 
 
 
@@ -266,7 +277,9 @@ gudumpinfo is a GUI system-information viewer that runs directly in the **UEFI S
 - **Secure Boot**: read-only view of Secure Boot state and certificate stores — top **summary bar** (enabled/disabled badge + **derived mode**: Setup/User/Deployed/Audit from the SetupMode/DeployedMode/AuditMode state machine + signature-type count + authenticated-variable count, second row per-store `type:count` overview, click "签名类型:N" for the full list); left list of the **six standard signature stores** (PK/KEK/db/dbx/dbt/dbr) + the Default series (PKDefault/KEKDefault/dbDefault/dbxDefault) + **all authenticated variables** (EFI_VARIABLE_AUTHENTICATED_ACCESS_ACCESS third-party variables such as shim's MokList, name-sorted, capped at 64); right table of signature entries (index/type/subject CN or hash digest/size) with **detailed X509 certificate parsing** for the selected entry (hand-rolled light DER: subject/issuer CN/O/C/OU, serial number, validity period, public-key algorithm & bit length, **SHA256 fingerprint**); SHA256-hash signatures shown in full 32 bytes; missing stores greyed as "not present", signature-list overruns marked red "parse failed" without affecting other stores; Tab cycles the left store list / right entry list focus zones, Ctrl+F searches store names; all data comes from UEFI variables (SecureBoot/SetupMode/PK/KEK/db/dbx…), no enroll/write operations
   - **Save As / Load From File (M15)**: File menu "**Save current view as file…**" (Ctrl+S) / "**Load from file…**" (Ctrl+L) — dumps any view's raw collected data into a `.gud` file (volume picker + suggested name `gud_<feature>_<timestamp>.gud`), replayable **at the data level** on another machine or in QEMU (ACPI tables re-disassemble after load, the memory editor works on loaded data, status bar shows "已载入"); the file header carries the `GUDINFO` signature + per-feature signature + dual byte-sum checksums, and parsing tolerates corrupt/truncated records (bad records skipped, partially-usable files still load); **every view except IO ports** is supported, loading auto-routes to the owning view, Ctrl+R returns to live data — save a real-machine failure site and reproduce it in QEMU
 - **Search**: global search box, **case-insensitive** matching of titles, protocol names and **aliases** (typing "GOP" finds Graphics Output), hex leaf numbers, field names and Chinese descriptions
-- **Keyboard focus**: Windows-style Tab zone cycling with focus highlight/lowlight; three-level Esc handling, Ctrl+R refresh
+- **Appearance**: dark/light **glass** themes (wallpaper + downsampled blur + translucent glass card covering the whole screen, zero layout shift); switch via the menu bar "视图 → 深色/浅色毛玻璃", the choice is persisted to `gudumpinfo.cfg` on the **boot volume** (`theme=dark|light`, dark by default) and applied on the next launch; on read-only media (Ventoy live CD, etc.) a failed write only prints a notice
+- **Full keyboard operation**: Windows-style **Tab focus-zone cycle** (menu → search → category buttons → list → detail/actions → editor) with focus highlight/lowlight and the zone name in the status bar; **menus are fully keyboard-driven** (←/→ switch 文件/帮助/视图, ↓ or Enter opens, ↑/↓ selects, Enter activates, Esc closes, Tab closes an open menu and moves on); **dialogs cycle their controls with Tab** (confirm box 确定/取消, save/load control ring, MSR settings' three controls), Enter/Space activates the focused control; three-level Esc (clear search → view back → close dialog), Ctrl+F search, Ctrl+S/Ctrl+L save/load, Ctrl+R refresh
+- **Mouse**: **wheel scrolling** (lists/details/menus) and left-button drag scrolling; **when the firmware ships no mouse driver the app brings its own** — an embedded USB HID boot-mouse driver scans USB devices, switches the endpoint to boot protocol, installs SimplePointer and hands the device back to the firmware on exit; it stays out of the way when a real pointer device already exists (two consumers on one endpoint would split the reports)
 - **Custom table widget**: virtual scrolling (CodeView-style), no memory pressure on thousands of rows
 
 ## Dependencies
@@ -288,7 +301,7 @@ gudumpinfo/
 ├── VERSION.txt                # Version
 ├── GudumpInfo.efi             # X64 binary
 ├── GudumpInfo-AARCH64.efi     # ARM64 binary
-├── gudumpinfo-boot-0.1.515.iso  # Live CD: bootable UEFI image (no Shell)
+├── gudumpinfo-boot-0.1.551.iso  # Live CD: bootable UEFI image (no Shell)
 └── docs/manual/               # Product manuals (brief/detailed md + docx, demo GIF, all screenshots)
 ```
 
@@ -306,9 +319,12 @@ Mouse support requires an OVMF build with the USB mouse driver (`-device usb-mou
 
 ## Screenshots
 
+All screenshots were taken from the 0.1.551 build (1280×800).
+
 | Feature | Screenshot |
 |---|---|
-| Main window (22 buttons) + Handle view | ![main](docs/manual/images/01_main_handle.png) |
+| Main window (22 buttons) + Handle view; dark glass (default) | ![main](docs/manual/images/01_main_handle.png) |
+| Light glass theme (switched from the View menu, persisted in `gudumpinfo.cfg`) | ![light](docs/manual/images/01_main_handle_light.png) |
 | Protocols center (M16) | ![protocols center](docs/manual/images/02_protocol_center.png) |
 | Driver list | ![drivers](docs/manual/images/03_driver.png) |
 | Device list (instance names) | ![devices](docs/manual/images/04_device.png) |
